@@ -1,0 +1,12 @@
+{
+  "id": "monitor",
+  "name": "リソース",
+  "icon": "monitoring",
+  "description": "CPU・GPU・メモリ・ビデオメモリ・VR のコマと、重いプロセス。プロセスを終えることもできる",
+  "version": "0.1.0",
+  "kind": "process",
+  "command": "bin/visor-monitor.exe",
+  "build": ["dotnet", "publish", "-c", "Release", "-o", "bin", "--nologo"],
+  "width": 0.45,
+  "height": 1160
+}

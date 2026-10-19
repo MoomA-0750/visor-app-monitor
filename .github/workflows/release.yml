@@ -1,0 +1,23 @@
+# v から始まるタグを push すると、組み立てたもの（visor-app.zip）をリリースに付ける。visor はこれを入れる（無ければソースから組み立てる）
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - run: dotnet publish -c Release -o out/bin --nologo
+      - shell: pwsh
+        run: |
+          Copy-Item app.json out/
+          Compress-Archive -Path out/* -DestinationPath visor-app.zip
+      - run: gh release create ${{ github.ref_name }} visor-app.zip --title ${{ github.ref_name }} --notes "visor のアプリ"
+        env:
+          GH_TOKEN: ${{ github.token }}
