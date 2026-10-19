@@ -142,7 +142,7 @@ JsonObject ProcList()
             Ui.Text($"{gr.Cpu:F1}%", "small", "dim").Width(100).TextAlign("end").Align("center"),
             Ui.Text($"{gr.Mem:F0} MB", "small", "dim").Width(150).TextAlign("end").Align("center"),
             asking ? Ui.Button($"end:{gr.Name}", "終える？", style: "danger", small: true).Align("center")
-                   : Ui.Button($"end:{gr.Name}", icon: "close").Align("center")).Gap(12));
+                   : Ui.Button($"end:{gr.Name}", icon: "close", small: true).Align("center")).Gap(12));
     }
     return list;
 }
