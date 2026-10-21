@@ -6,7 +6,26 @@
   "version": "0.1.0",
   "kind": "process",
   "command": "bin/visor-monitor.exe",
-  "build": ["dotnet", "publish", "-c", "Release", "-o", "bin", "--nologo"],
+  "build": [
+    "dotnet",
+    "publish",
+    "-c",
+    "Release",
+    "-o",
+    "bin",
+    "--nologo"
+  ],
   "width": 0.45,
-  "height": 1160
+  "height": 1160,
+  "widgets": [
+    {
+      "id": "resources",
+      "name": "リソース",
+      "icon": "monitoring",
+      "size": [
+        3,
+        2
+      ]
+    }
+  ]
 }

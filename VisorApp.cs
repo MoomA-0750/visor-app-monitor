@@ -43,10 +43,33 @@ public sealed class VisorApp
 
     public bool IsVisible { get; private set; }
 
+    /// <summary>HUD のウィジェット（app.json の widgets）が置かれた・外された（ウィジェットの id、見えているか）。</summary>
+    public event Action<string, bool>? WidgetVisible;
+
+    readonly HashSet<string> _widgets = [];
+
+    /// <summary>そのウィジェットが HUD に置かれているか（置かれている間だけ中身を送ればよい）。</summary>
+    public bool IsWidgetVisible(string id)
+    {
+        lock (_widgets) return _widgets.Contains(id);
+    }
+
+    /// <summary>置かれているウィジェットがあるか。</summary>
+    public bool AnyWidgetVisible
+    {
+        get
+        {
+            lock (_widgets) return _widgets.Count > 0;
+        }
+    }
+
     // --- 送る ---
 
     /// <summary>窓の中身を入れ替える（Ui の部品で組んだもの）。</summary>
     public void Render(JsonNode ui) => Send(new JsonObject { ["type"] = "render", ["ui"] = ui });
+
+    /// <summary>HUD のウィジェットの中身を入れ替える（画面と同じ部品。見るだけなので、ボタンは押せない）。</summary>
+    public void Widget(string id, JsonNode ui) => Send(new JsonObject { ["type"] = "widget", ["id"] = id, ["ui"] = ui });
 
     /// <summary>Claude が窓を読んだときに渡す文。</summary>
     public void Describe(string text) => Send(new JsonObject { ["type"] = "describe", ["text"] = text });
@@ -115,6 +138,18 @@ public sealed class VisorApp
                     IsVisible = msg["visible"]?.GetValue<bool>() == true;
                     Visible?.Invoke(IsVisible);
                     break;
+                case "widget_visible":
+                {
+                    var id = msg["id"]?.GetValue<string>() ?? "";
+                    var on = msg["visible"]?.GetValue<bool>() == true;
+                    lock (_widgets)
+                    {
+                        if (on) _widgets.Add(id);
+                        else _widgets.Remove(id);
+                    }
+                    WidgetVisible?.Invoke(id, on);
+                    break;
+                }
                 case "tool_call":
                     _ = AnswerTool(msg);
                     break;
@@ -159,9 +194,9 @@ public static class Ui
 
     public static JsonObject Markdown(string text) => new() { ["type"] = "markdown", ["text"] = text };
 
-    /// <summary>text が無ければ丸いアイコンのボタン。style: primary・selected・danger。</summary>
-    public static JsonObject Button(string id, string? text = null, string? icon = null, string? style = null, bool small = false) =>
-        Set(new JsonObject { ["type"] = "button", ["id"] = id }, ("text", text), ("icon", icon), ("style", style), ("size", small ? "small" : null));
+    /// <summary>text が無ければ丸いアイコンのボタン（tip はしばらく指すと出す説明）。style: primary・selected・danger。</summary>
+    public static JsonObject Button(string id, string? text = null, string? icon = null, string? style = null, bool small = false, string? tip = null) =>
+        Set(new JsonObject { ["type"] = "button", ["id"] = id }, ("text", text), ("icon", icon), ("style", style), ("size", small ? "small" : null), ("tip", tip));
 
     public static JsonObject Icon(string name, string? color = null) => Set(new JsonObject { ["type"] = "icon", ["name"] = name }, ("color", color));
     public static JsonObject Divider() => new() { ["type"] = "divider" };

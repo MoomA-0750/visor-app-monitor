@@ -5,7 +5,8 @@ using VisorMonitor;
 using VisorSdk;
 
 // visor のアプリ「リソース」: CPU・GPU・メモリ・ビデオメモリ・VR のコマの時間と、重いプロセスの一覧（終えることもできる）。
-// 窓が見えている間だけ 1 秒おきに取って描く。VR のコマは visor に頼んで読む（vr.stats）。
+// 窓が見えている間（か HUD のウィジェットを置いている間）だけ 1 秒おきに取って描く。VR のコマは visor に頼んで読む（vr.stats）。
+// HUD のウィジェット「resources」（app.json の widgets）は、CPU・GPU・メモリを細い帯で並べる。
 
 const int Rows = 10;
 
@@ -68,7 +69,7 @@ _ = Task.Run(async () =>
 {
     while (true)
     {
-        if (app.IsVisible)
+        if (app.IsVisible || app.AnyWidgetVisible)
         {
             var s = stats.Sample();
             var p = stats.Processes();
@@ -93,8 +94,14 @@ stats.Dispose();
 void Draw()
 {
     JsonObject ui;
-    lock (gate) ui = Build();
+    JsonObject widget;
+    lock (gate)
+    {
+        ui = Build();
+        widget = BuildWidget();
+    }
     app.Render(ui);
+    if (app.IsWidgetVisible("resources")) app.Widget("resources", widget);
     lock (gate)
         if (last != null) app.Describe(Summary(last, procs));
 }
@@ -118,6 +125,16 @@ JsonObject Build()
             Ui.Button("sort:mem", "メモリ順", style: sortByMem ? "selected" : null, small: true)),
         ProcList()).Gap(18);
     return col;
+}
+
+// HUD のウィジェット: 名前・値・帯を 3 段（見るだけ）
+JsonObject BuildWidget()
+{
+    var s = last;
+    return Ui.Column(
+        Meter("CPU", s == null ? "-" : $"{s.Cpu:F0}%", (s?.Cpu ?? 0) / 100),
+        Meter("GPU", s == null ? "-" : $"{s.Gpu:F0}%", (s?.Gpu ?? 0) / 100),
+        Meter("メモリ", s == null ? "-" : $"{s.MemUsedGb:F1} / {s.MemTotalGb:F0} GB", s == null ? 0 : s.MemUsedGb / Math.Max(1, s.MemTotalGb))).Gap(10);
 }
 
 static JsonObject Meter(string name, string value, double ratio) =>
